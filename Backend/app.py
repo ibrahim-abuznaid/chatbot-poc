@@ -40,7 +40,7 @@ class RAGResponse(TypedDict):
 app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:8080", "http://127.0.0.1:8080"],
+        "origins": ["https://pochitlon.vorexai.com", "http://pochitlon.vorexai.com", "http://localhost:8080", "http://127.0.0.1:8080"],
         "methods": ["POST", "GET", "OPTIONS"],
         "allow_headers": ["Content-Type"]
     }
@@ -596,5 +596,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error processing query: {str(e)}")
     else:
-        port = int(os.getenv("PORT", 3001))
-        app.run(host="127.0.0.1", port=port, debug=True)
+        app.run(host='0.0.0.0', port=5000)
