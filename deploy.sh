@@ -25,29 +25,29 @@ sudo systemctl enable nginx
 sudo npm install -g pm2
 
 # Create application directory
-sudo mkdir -p /var/www/vorex
-sudo chown -R $USER:$USER /var/www/vorex
+sudo mkdir -p /var/www/pochitlon
+sudo chown -R $USER:$USER /var/www/pochitlon
 
 # Create Python virtual environment
-python3 -m venv /var/www/vorex/venv
-source /var/www/vorex/venv/bin/activate
+python3 -m venv /var/www/pochitlon/venv
+source /var/www/pochitlon/venv/bin/activate
 
 # Install Python dependencies
 pip install flask flask-cors python-dotenv langchain-core langchain-openai langchain-community openai langsmith google-generativeai faiss-cpu numpy typing-extensions
 
 # Configure Nginx
-sudo tee /etc/nginx/sites-available/poc_v2.vorexai.com << EOF
+sudo tee /etc/nginx/sites-available/pochitlon.vorexai.com << EOF
 # Redirect www to non-www
 server {
     listen 80;
-    server_name www.poc_v2.vorexai.com;
-    return 301 \$scheme://poc_v2.vorexai.com\$request_uri;
+    server_name www.pochitlon.vorexai.com;
+    return 301 \$scheme://pochitlon.vorexai.com\$request_uri;
 }
 
 # Main server block
 server {
     listen 80;
-    server_name poc_v2.vorexai.com;
+    server_name pochitlon.vorexai.com;
 
     location / {
         proxy_pass http://localhost:5173;
@@ -70,7 +70,7 @@ server {
 EOF
 
 # Enable the site
-sudo ln -s /etc/nginx/sites-available/poc_v2.vorexai.com /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/pochitlon.vorexai.com /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default
 
 # Test Nginx configuration
@@ -84,4 +84,4 @@ sudo systemctl enable nginx
 sudo apt install -y certbot python3-certbot-nginx
 
 # Get SSL certificate (only for main domain)
-sudo certbot --nginx -d poc_v2.vorexai.com 
+sudo certbot --nginx -d pochitlon.vorexai.com 
