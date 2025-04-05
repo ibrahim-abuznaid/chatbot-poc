@@ -124,7 +124,7 @@ export default function Chat() {
             }}
           >
             <MenuItem value="openai">OpenAI</MenuItem>
-            <MenuItem value="gemini">Gemini</MenuItem>
+            {/* <MenuItem value="gemini">Gemini</MenuItem> */}
           </Select>
           <QueryTranslationSelector qtt={qtt} setQtt={setQtt} />
         </div>

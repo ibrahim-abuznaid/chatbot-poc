@@ -14,9 +14,9 @@ const QueryTranslationSelector = ({ qtt, setQtt }: QueryTranslationSelectorProps
       sx={{ minWidth: 120 }}
     >
       <MenuItem value="basic">Basic</MenuItem>
-      <MenuItem value="fusion">Fusion</MenuItem>
+      {/* <MenuItem value="fusion">Fusion</MenuItem>
       <MenuItem value="decomposition">Decomposition</MenuItem>
-      <MenuItem value="hyde">HyDE</MenuItem>
+      <MenuItem value="hyde">HyDE</MenuItem> */}
     </Select>
   );
 };
