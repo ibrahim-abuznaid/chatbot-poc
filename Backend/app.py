@@ -17,12 +17,8 @@ from typing import List, TypedDict, Optional
 import re
 import argparse
 import numpy as np
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import uuid
-import hashlib
 from typing_extensions import TypedDict
 
 # Add this import for Message type
@@ -55,60 +51,33 @@ os.environ["LANGSMITH_TRACING"] = "true"
 # Create OpenAI client
 openai_client = wrap_openai(openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY")))
 
-# Modify the embeddings setup to use the correct Gemini embeddings configuration
-def get_embeddings(llm_model="openai"):
+def get_embeddings():
+    """Get embeddings based on OpenAI"""
+    return OpenAIEmbeddings(
+        model="text-embedding-3-large",
+        openai_api_key=os.getenv("OPENAI_API_KEY")
+    )
 
-    """Get embeddings based on specified model"""
-    if llm_model == "openai":
-        return OpenAIEmbeddings(
-            model="text-embedding-3-large",
-            openai_api_key=os.getenv("OPENAI_API_KEY")
-        )
-    elif llm_model == "gemini":
-        return GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",  # Correct model name for Gemini embeddings
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-            task_type="retrieval_query",
-            dimension=768  # Specify embedding dimension
-        )
-    else:
-        raise ValueError(f"Unsupported LLM model for embeddings: {llm_model}")
+def get_llm():
+    """Get LLM based on OpenAI"""
+    return ChatOpenAI(
+        model="gpt-4o",
+        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        temperature=0.1
+    )
 
-# Modify the get_llm function to use the correct Gemini model name
-def get_llm(llm_model="openai"):
-    """Get LLM based on specified model"""
-    if llm_model == "openai":
-        return ChatOpenAI(
-            model="gpt-4o",
-            openai_api_key=os.getenv("OPENAI_API_KEY"),
-            temperature=0.1
-        )
-    elif llm_model == "gemini":
-        return ChatGoogleGenerativeAI(
-            model="gemini-2.0-pro-exp-02-05",
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0.1,
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            }
-        )
-    else:
-        raise ValueError(f"Unsupported LLM model: {llm_model}")
-def get_llm2(llm_model="openai"):
-    """Get LLM based on specified model"""
-    if llm_model == "openai":
-        return ChatOpenAI(
-            model="gpt-4o-mini",
-            openai_api_key=os.getenv("OPENAI_API_KEY"),
-            temperature=0.1
-        )
+def get_llm2():
+    """Get second LLM instance"""
+    return ChatOpenAI(
+        model="gpt-4o-mini",
+        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        temperature=0.1
+    )
+
 # Initialize global variables
-llm = get_llm("openai")
-llm2 = get_llm2("openai")
-embeddings = get_embeddings("openai")
+llm = get_llm()
+llm2 = get_llm2()
+embeddings = get_embeddings()
 
 # Basic Query Translation
 @traceable(name="basic_query_translation")
@@ -440,13 +409,10 @@ Please provide your answer based on the documents. also follow the guidelines ab
 
 # Main RAG Pipeline
 @traceable(name="rag_pipeline_with_routing")
-def process_query(user_query, llm_model="openai", conversation_history: List[Message] = None):
+def process_query(user_query, conversation_history: List[Message] = None):
     """Complete RAG pipeline with self-routing"""
     try:
-        # Initialize models and vectorstore
-        global llm, embeddings
-        llm = get_llm(llm_model)
-        embeddings = get_embeddings(llm_model)
+        # Initialize vectorstore
         vectorstore = initialize_vectorstore()
 
         # Initial RAG attempt
@@ -491,7 +457,7 @@ def process_query(user_query, llm_model="openai", conversation_history: List[Mes
             "conversation_history": conversation_history,
             "confidence": confidence,
             "response_type": response_type,
-            "sources": sources  # Include sources in the response
+            "sources": sources
         }
 
     except Exception as e:
@@ -504,13 +470,12 @@ def send_message():
     try:
         data = request.get_json()
         message = data.get("message", "")
-        llm_model = data.get("llm_model", "openai")
         conversation_history = data.get("conversation_history", [])
 
         if not message:
             return jsonify({"error": "No message provided"}), 400
 
-        result = process_query(message, llm_model, conversation_history)
+        result = process_query(message, conversation_history)
         
         # Update conversation history
         updated_history = conversation_history + [
@@ -531,11 +496,10 @@ def send_message():
                     }
                     for doc in result.get("retrieved_documents", [])
                 ],
-                "llm_model": str(llm_model),
                 "conversation_history": updated_history,
                 "confidence": result.get("confidence"),
                 "response_type": result.get("response_type"),
-                "sources": result.get("sources", [])  # Include sources in the response
+                "sources": result.get("sources", [])
             }
         }
         
@@ -550,41 +514,15 @@ def send_message():
 def health_check():
     return jsonify({"status": "healthy"}), 200
 
-# Add initialization timeout configuration for Google AI
-def initialize_google_ai():
-    """Initialize Google AI configuration"""
-    try:
-        import google.generativeai as genai
-        genai.configure(
-            api_key=os.getenv("GOOGLE_API_KEY"),
-            transport="rest"  # Use REST instead of gRPC to avoid timeout issues
-        )
-        
-        # Suppress warning messages
-        import absl.logging
-        absl.logging.set_verbosity(absl.logging.ERROR)
-        
-    except Exception as e:
-        print(f"Error initializing Google AI: {str(e)}")
-        raise
-
-# Modify the main block to initialize Google AI
 if __name__ == "__main__":
-    # Initialize Google AI if needed
-    initialize_google_ai()
-    
     parser = argparse.ArgumentParser(description='Enhanced RAG Query System')
     parser.add_argument('--query', type=str, help='Query to process')
-    parser.add_argument('--llm_model', type=str, default='openai',
-                      choices=['openai', 'gemini'],
-                      help='LLM model to use')
     args = parser.parse_args()
 
     if args.query:
         try:
-            result = process_query(args.query, args.llm_model)
+            result = process_query(args.query)
             print("\nQuery Results:")
-            print(f"\nUsing LLM Model: {args.llm_model}")
             print(f"Original Query: {result['original_query']}")
             print(f"Refined Query: {result['refined_query']}")
             print(f"\nResponse: {result['response']}")

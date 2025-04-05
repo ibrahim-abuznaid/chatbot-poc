@@ -36,11 +36,9 @@ pip install -r requirements.txt 2>/dev/null || pip install \
     langchain-community \
     openai \
     langsmith \
-    google-generativeai \
     faiss-cpu \
     numpy \
-    typing-extensions \
-    langchain-google-genai
+    typing-extensions
 
 # Start the backend with PM2
 echo "Starting backend service..."
