@@ -1,0 +1,29 @@
+# langchain
+# langchain-core
+# langchain-openai
+# langchain-community
+# python-dotenv
+# openai
+# chromadb
+# langsmith
+# flask
+# flask-cors
+# gunicorn
+# faiss-cpu 
+langchain
+langchain-core
+langchain-openai
+langchain-community
+python-dotenv
+openai
+chromadb
+langsmith
+flask
+flask-cors
+gunicorn
+faiss-cpu
+numpy
+pandas
+google-generativeai
+langchain-google-genai
+absl-py

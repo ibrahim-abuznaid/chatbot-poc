@@ -1,0 +1,19 @@
+from types import SimpleNamespace
+# After creating your dataset object:
+# e.g., dataset = client.create_dataset(dataset_name)
+
+# Prepare evaluation data as plain dictionaries
+inputs_data = [{"question": q} for q, a in qa_pairs]
+
+# Convert dicts to objects with attribute access including dataset_id
+inputs = [SimpleNamespace(**inp, dataset_id=dataset.id) for inp in inputs_data]
+
+reference_outputs = [{"answer": a} for q, a in qa_pairs]
+
+# Then pass `inputs` to your evaluate function:
+experiments["app_v3_basic"] = client.evaluate(
+    target_app_v3_basic,
+    data=inputs,
+    evaluators=evaluators,
+    experiment_prefix="app-v3-basic"
+) 
